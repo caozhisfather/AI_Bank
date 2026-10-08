@@ -1,0 +1,17 @@
+{
+  "name": "icbc-carbon-transition-platform",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": ["frontend"],
+  "scripts": {
+    "dev": "concurrently -k -n API,WEB -c green,cyan \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "conda run -n pytorch_env --no-capture-output python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000",
+    "dev:frontend": "npm run dev --workspace carbon-transition-frontend",
+    "build": "npm run build --workspace carbon-transition-frontend",
+    "test": "conda run -n pytorch_env --no-capture-output python -m pytest -q",
+    "install:all": "npm install"
+  },
+  "devDependencies": {
+    "concurrently": "latest"
+  }
+}
