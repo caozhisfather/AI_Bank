@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, shallowRef, useId, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, useId, watch } from 'vue'
 import { dependencyEdges, dependencyNeighborhoodView, networkHeight, networkLayout, networkView } from '../utils/networkView'
 import { routeControlPoint } from '../utils/graphRoute'
 import { graphTransitionFrame } from '../utils/graphTransition'
@@ -10,12 +10,34 @@ const graphId=`network-${useId().replace(/[^a-zA-Z0-9_-]/g,'')}`
 const kind=ref('all'),order=ref('all'),hover=ref(null),hoverEdge=ref(null)
 const businessScope=ref('direct')
 const compact=ref(true),expanded=ref(new Set()),bundle=ref(null)
+const graphStage=ref(null),fullscreen=ref(false),fullscreenError=ref('')
+function syncFullscreen(){fullscreen.value=document.fullscreenElement===graphStage.value}
+async function toggleFullscreen(){
+  fullscreenError.value=''
+  try {
+    if(document.fullscreenElement===graphStage.value) await document.exitFullscreen()
+    else if(graphStage.value?.requestFullscreen) await graphStage.value.requestFullscreen()
+    else fullscreenError.value='当前浏览器暂不支持全屏，可收起筛选面板查看更多图谱。'
+  } catch {fullscreenError.value='暂时无法进入全屏，可收起筛选面板查看更多图谱。'}
+}
+onMounted(()=>document.addEventListener('fullscreenchange',syncFullscreen))
+onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',syncFullscreen))
+const defaultFilters=computed(()=>kind.value==='all'&&order.value==='all'&&businessScope.value==='direct'&&compact.value&&expanded.value.size===0)
+function resetFilters(){
+  kind.value='all';order.value='all';businessScope.value='direct';compact.value=true
+  expanded.value=new Set();hover.value=null;hoverEdge.value=null;bundle.value=null
+}
 watch([kind,order],()=>emit('filter',{kind:kind.value,order:order.value}),{immediate:true})
 const allNodes=computed(()=>props.graph.nodes||[]),rawEdges=computed(()=>props.graph.edges||[])
 const origin=computed(()=>props.selectedCompanyId||allNodes.value.find(node=>node.selected)?.company_id)
 const classes=computed(()=>props.graph.relation_classes||[])
 const classMap=computed(()=>Object.fromEntries(classes.value.map(item=>[item.key,item])))
 const business=computed(()=>props.mode==='dependency')
+const filterSummary=computed(()=>[
+  kind.value==='all'?'全部类型':classes.value.find(item=>item.key===kind.value)?.label||'已筛选',
+  business.value?(businessScope.value==='overview'?'园区总览':'两阶依赖'):(order.value==='all'?'全部层级':`${order.value}阶传导`),
+  compact.value?(business.value?'精简分组':'关键链路'):'全部展开'
+].join(' · '))
 const worsening=computed(()=>props.stressed?worseningSubjects(allNodes.value):[])
 const topChanges=computed(()=>props.stressed?stressPriorityIds(allNodes.value):new Set())
 watch([()=>props.mode,()=>props.selectedCompanyId],()=>{hover.value=null;hoverEdge.value=null;bundle.value=null})
@@ -109,19 +131,49 @@ function activateEdge(edge){if(edge.is_bundle)bundle.value=edge;else emit('inspe
 </script>
 <template>
   <section class="risk-graph-shell" :class="{'business-network':business,'has-stress':stressed}" :aria-label="business?'业务依赖关系图':'双向风险传导图'">
-    <div class="directed-graph-toolbar"><div class="relation-filters" aria-label="依赖关系筛选">
-      <button :class="{active:kind==='all'}" :aria-pressed="kind==='all'" @click="kind='all'">全部 <small>{{scope.edges.length}}</small></button>
-      <button v-for="item in classes" :key="item.key" :class="{active:kind===item.key}" :aria-pressed="kind===item.key" @click="kind=item.key"><svg width="23" height="10" aria-hidden="true"><line x1="0" x2="23" y1="5" y2="5" :stroke="item.color" :stroke-dasharray="item.dash" stroke-width="2" /></svg>{{item.label}} <small>{{count(item.key)}}</small></button>
-    </div></div>
-    <div v-if="business" class="propagation-order-toolbar"><span>显示范围</span><div class="graph-business-scope" aria-label="业务依赖图范围"><button :class="{active:businessScope==='overview'}" :aria-pressed="businessScope==='overview'" @click="businessScope='overview';hover=null">园区总览</button><button :class="{active:businessScope==='direct'}" :aria-pressed="businessScope==='direct'" @click="businessScope='direct'">当前企业两阶依赖</button></div><span v-if="businessScope!=='overview'">中心：目标企业 · 内圈：一阶 · 外圈：二阶</span></div>
-    <div v-if="!business" class="propagation-order-toolbar"><span>传播层级</span><div class="graph-scope-buttons" aria-label="传播层级"><button v-for="item in [{key:'all',label:'全部'},{key:'1',label:'一阶'},{key:'2',label:'二阶'}]" :key="item.key" :class="{active:order===item.key}" :aria-pressed="order===item.key" @click="order=item.key">{{item.label}}</button></div><span>同时查看传入与传出</span></div>
-    <div class="graph-group-toolbar"><span>{{business?'企业展示':'图谱内容'}}</span><div class="graph-scope-buttons" aria-label="企业分组展示"><button :class="{active:compact}" :aria-pressed="compact" @click="compact=true;expanded=new Set()">{{business?'精简分组':'关键链路'}}</button><button :class="{active:!compact}" :aria-pressed="!compact" @click="compact=false">{{business?'展开全部':'全部链路'}}</button></div><span>{{business?'同类外围企业合并展示，点击分组展开':(compact?'前3条传入及前3个传出主体的主要链路；点击分组展开':'展示所选层级、类型的完整传入与传出链路')}}</span><button v-if="compact&&expanded.size" class="park-text-button" @click="expanded=new Set()">重新合并</button></div>
     <section v-if="stressed" class="graph-stress-focus" aria-label="园区主要恶化企业"><div class="graph-stress-focus-heading"><b>园区主要恶化企业</b><span>按综合风险增幅排序 · 相比正常情景</span></div><div v-if="worsening.length" class="graph-stress-cards"><button v-for="(node,index) in worsening" :key="node.company_id" @click="emit('select',node.company_id)"><span class="graph-stress-rank">0{{index+1}}</span><b>{{node.company_name}}</b><strong>{{pp(node.change)}}</strong><span>{{pct(node.baseline_risk)}} → {{pct(node.risk)}}</span><small>{{node.escalation}} · 点击分析</small></button></div><p v-else>当前情景暂无风险上升主体。</p></section>
-    <div class="directed-graph-legend"><div class="directed-node-legend"><span><i class="low"></i>低风险</span><span><i class="medium"></i>中风险</span><span><i class="high"></i>高风险</span></div><span>{{stressed?'节点颜色为压力情景风险':'节点颜色为正常情景风险'}} · {{compact?'分组取成员最高风险':'线宽为依赖强度'}} · 方形：能源 · 菱形：设施</span></div>
-    <p class="directed-graph-guide">{{business?(businessScope==='overview'?'依赖方 → 被依赖方；当前为园区总览，点击企业查看其两阶依赖关系。':'依赖方 → 被依赖方；展示与目标企业相连的一、二阶依赖链，点击企业切换分析对象。'):'影响来源 → 当前企业 → 受影响主体；绿色负值为园区缓释，红色正值为风险传入，单位为百分点。'}}</p>
-    <div v-if="bundle" class="graph-bundle-detail" aria-label="分组合并关系明细"><div><b>{{edgeName(bundle)}} · {{bundle.relation_count}}条成员关系</b><button aria-label="关闭分组关系明细" @click="bundle=null">×</button></div><p>{{business?'箭头为依赖方向；分组不代表成员之间可以互相替代。':'箭头为风险影响方向；每条成员连线保留独立贡献。'}}</p><ul><li v-for="relation in bundle.relations" :key="relation.relation_id"><span>{{rawName(relation.source)}} → {{rawName(relation.target)}}<small>{{relation.commodity||relation.relation_type}} · {{pct(relation.weight)}}<template v-if="!business"> · 净影响 {{pp(relation.direct_contribution)}}</template></small></span><button class="park-text-button" @click="emit('inspect',{type:'edge',id:relation.relation_id})">查看</button></li></ul></div>
+    <div ref="graphStage" class="graph-stage">
+      <button type="button" class="graph-expand-button" @click="toggleFullscreen" :aria-label="fullscreen?'退出全屏图谱':'全屏查看图谱'">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path v-if="!fullscreen" d="M7 3H3v4m10-4h4v4M3 13v4h4m10-4v4h-4"/><path v-else d="M3 7h4V3m6 0v4h4M7 17v-4H3m10 4v-4h4"/></svg>
+        {{fullscreen?'退出全屏':'全屏看图'}}
+      </button>
+      <details class="graph-floating-controls" @keydown.esc.stop="event=>event.currentTarget.open=false">
+        <summary class="graph-controls-toggle">
+          <svg class="graph-controls-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg>
+          <span><b>图谱筛选</b><small>{{filterSummary}}</small></span>
+          <svg class="graph-controls-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg>
+        </summary>
+        <div class="graph-controls-content">
+    <div class="directed-graph-toolbar">
+      <span class="graph-control-label">关系类型</span>
+      <div class="relation-filters" role="group" aria-label="依赖关系筛选">
+        <button type="button" :class="{active:kind==='all'}" :aria-pressed="kind==='all'" title="显示所有类型的关联关系" @click="kind='all'">全部类型 <small>{{scope.edges.length}}</small></button>
+        <button v-for="item in classes" :key="item.key" type="button" :class="{active:kind===item.key}" :aria-pressed="kind===item.key" :title="`仅显示${item.label}`" @click="kind=item.key"><svg width="23" height="10" aria-hidden="true"><line x1="0" x2="23" y1="5" y2="5" :stroke="item.color" :stroke-dasharray="item.dash" stroke-width="2" /></svg>{{item.label}} <small>{{count(item.key)}}</small></button>
+      </div>
+      <button type="button" class="graph-reset-button" :disabled="defaultFilters" title="恢复全部类型、默认范围与分组展示" @click="resetFilters"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8a7 7 0 1 1 1 7M3 3v5h5" /></svg>恢复默认</button>
+    </div>
+    <div v-if="business" class="propagation-order-toolbar">
+      <span class="graph-control-label">显示范围</span>
+      <div class="graph-business-scope" role="group" aria-label="业务依赖图范围">
+        <button type="button" :class="{active:businessScope==='overview'}" :aria-pressed="businessScope==='overview'" title="查看园区内全部企业及关联关系" @click="businessScope='overview';hover=null">园区总览</button>
+        <button type="button" :class="{active:businessScope==='direct'}" :aria-pressed="businessScope==='direct'" title="聚焦当前企业的一阶、二阶依赖关系" @click="businessScope='direct'">当前企业两阶依赖</button>
+      </div>
+      <span class="graph-control-hint">{{businessScope==='overview'?'查看园区全貌，点击企业可聚焦其关联关系':'以当前企业为中心，内圈为一阶、外圈为二阶关联'}}</span>
+    </div>
+    <div v-if="!business" class="propagation-order-toolbar"><span class="graph-control-label">传播层级</span><div class="graph-scope-buttons" role="group" aria-label="传播层级"><button v-for="item in [{key:'all',label:'全部层级'},{key:'1',label:'一阶传导'},{key:'2',label:'二阶传导'}]" :key="item.key" type="button" :class="{active:order===item.key}" :aria-pressed="order===item.key" @click="order=item.key">{{item.label}}</button></div><span class="graph-control-hint">同时查看风险传入与传出</span></div>
+    <div class="graph-group-toolbar">
+      <span class="graph-control-label">{{business?'企业展示':'图谱内容'}}</span>
+      <div class="graph-scope-buttons" role="group" aria-label="企业分组展示">
+        <button type="button" :class="{active:compact}" :aria-pressed="compact" title="优先显示分组与主要关联，减少图谱拥挤" @click="compact=true;expanded=new Set()">{{business?'精简分组':'关键链路'}}</button>
+        <button type="button" :class="{active:!compact}" :aria-pressed="!compact" title="展开当前范围内全部企业及关联关系" @click="compact=false">{{business?'展开全部':'全部链路'}}</button>
+      </div>
+      <span class="graph-control-hint">{{business?(compact?'同类外围企业合并显示，点击分组即可展开':'当前范围内的企业逐一显示，可切回分组减少拥挤'):(compact?'显示主要传入与传出链路，点击分组可展开':'显示当前筛选下的完整传入与传出链路')}}</span>
+      <button v-if="compact&&expanded.size" type="button" class="graph-reset-button" @click="expanded=new Set()">重新合并分组</button>
+    </div>
+        </div>
+      </details>
     <div class="directed-graph-canvas">
-      <svg class="risk-graph" :viewBox="`0 0 840 ${canvasHeight}`" role="img" :aria-label="business?'园区业务依赖关系图':'园区风险传导图'">
+      <svg class="risk-graph" :viewBox="`0 0 840 ${canvasHeight}`" preserveAspectRatio="xMidYMid meet" role="img" :aria-label="business?'园区业务依赖关系图':'园区风险传导图'">
         <g v-if="business&&businessScope==='overview'" class="overview-sections" aria-hidden="true"><rect x="220" y="28" width="400" height="100" rx="12"/><text x="420" y="20">能源服务</text><rect x="40" y="150" width="130" :height="Math.max(0,canvasHeight-450)" rx="12"/><text x="105" y="142">原料与生产配套</text><rect x="220" y="150" width="400" :height="Math.max(0,canvasHeight-450)" rx="12"/><text x="420" y="142">钢铁与金属加工</text><rect x="670" y="150" width="130" :height="Math.max(0,canvasHeight-450)" rx="12"/><text x="735" y="142">下游客户</text><rect x="32" :y="canvasHeight-265" width="776" height="100" rx="12"/><text x="420" :y="canvasHeight-273">建材与资源利用</text><rect x="156" :y="canvasHeight-125" width="530" height="100" rx="12"/><text x="420" :y="canvasHeight-133">公共设施服务</text></g>
         <defs><marker v-for="item in classes" :key="item.key" :id="`${graphId}-${item.key}`" markerWidth="10" markerHeight="10" refX="9" refY="5" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L0,10 L9,5 z" :fill="item.color" /></marker></defs>
         <g v-if="!business" class="risk-zone-labels" aria-hidden="true"><text x="160" y="48" text-anchor="middle">风险传入</text><text x="420" y="48" text-anchor="middle">当前分析企业</text><text x="680" y="48" text-anchor="middle">风险传出</text><line x1="340" x2="340" y1="75" :y2="canvasHeight-130"/><line x1="500" x2="500" y1="75" :y2="canvasHeight-130"/></g>
@@ -150,6 +202,11 @@ function activateEdge(edge){if(edge.is_bundle)bundle.value=edge;else emit('inspe
       </svg>
       <p v-if="!edges.length" class="graph-empty">当前筛选没有可展示的{{business?'依赖关系':'传入或传出路径'}}。</p>
     </div>
+    <div class="directed-graph-legend"><div class="directed-node-legend"><span><i class="low"></i>低风险</span><span><i class="medium"></i>中风险</span><span><i class="high"></i>高风险</span></div><span>{{stressed?'节点颜色为压力情景风险':'节点颜色为正常情景风险'}} · {{compact?'分组取成员最高风险':'线宽为依赖强度'}} · 方形：能源 · 菱形：设施</span></div>
+    </div>
+    <p v-if="fullscreenError" class="graph-fullscreen-error" role="status">{{fullscreenError}}</p>
+    <p class="directed-graph-guide">{{business?(businessScope==='overview'?'依赖方 → 被依赖方；当前为园区总览，点击企业查看其两阶依赖关系。':'依赖方 → 被依赖方；展示与目标企业相连的一、二阶依赖链，点击企业切换分析对象。'):'影响来源 → 当前企业 → 受影响主体；绿色负值为园区缓释，红色正值为风险传入，单位为百分点。'}}</p>
+    <div v-if="bundle" class="graph-bundle-detail" aria-label="分组合并关系明细"><div><b>{{edgeName(bundle)}} · {{bundle.relation_count}}条成员关系</b><button aria-label="关闭分组关系明细" @click="bundle=null">×</button></div><p>{{business?'箭头为依赖方向；分组不代表成员之间可以互相替代。':'箭头为风险影响方向；每条成员连线保留独立贡献。'}}</p><ul><li v-for="relation in bundle.relations" :key="relation.relation_id"><span>{{rawName(relation.source)}} → {{rawName(relation.target)}}<small>{{relation.commodity||relation.relation_type}} · {{pct(relation.weight)}}<template v-if="!business"> · 净影响 {{pp(relation.direct_contribution)}}</template></small></span><button class="park-text-button" @click="emit('inspect',{type:'edge',id:relation.relation_id})">查看</button></li></ul></div>
     <div class="directed-graph-inspector"><div><b v-if="compact">{{targetNodes.length}} 个图示节点 · {{renderView.edges.length}} 条图示连线 · 覆盖 {{presentation.subject_count}} 个主体 / {{presentation.relation_count}} 条关系</b><b v-else>{{targetNodes.length}} 个主体 · {{view.edges.length}} 条关系</b><span>{{business?'深色为当前企业直接关系；悬停主体突出连线；点击切换分析':'点击节点或连线查看详情'}}</span></div><p v-if="compact">分组颜色取成员最高风险；点击合并连线查看原始成员。<template v-if="!business">当前为关键链路，完整范围含 {{view.total_subject_count||scope.ids.size}} 个主体、{{view.total_relation_count??scope.edges.length}} 条关系；风险汇总不受精简影响，下方明细保留当前筛选范围。</template><template v-else>风险与授信仍逐企业计算。</template></p></div>
     <details v-if="pending.length" class="pending-relations"><summary>{{pending.length}} 条关系待核验</summary><div class="table-wrap"><table><thead><tr><th>关系端点</th><th>原类型</th><th>待核验原因</th></tr></thead><tbody><tr v-for="item in pending" :key="item.relation_id"><td>{{item.source_name}} — {{item.target_name}}</td><td>{{item.original_relation_type}}</td><td>{{item.pending_reason}}</td></tr></tbody></table></div></details>
   </section>
