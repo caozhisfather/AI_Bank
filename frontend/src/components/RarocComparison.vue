@@ -37,11 +37,23 @@ const gap = computed(() => !ready.value ? '—' : `${status.value === 'above' ? 
   <section class="raroc-comparison" aria-label="RAROC 风险收益校验">
     <header class="raroc-heading"><h3>RAROC 风险收益校验</h3><span>风险调整资本收益率</span></header>
     <div class="raroc-stats">
-      <div class="raroc-stat" :class="status"><span>初始测算 RAROC</span><strong>{{ percent(initial) }}</strong><small>按初始建议利率 {{ percent(decision.initial_rate) }} 计算</small></div>
-      <div class="raroc-stat benchmark"><span>演示 RAROC 门槛</span><strong>{{ percent(threshold) }}</strong><small>项目设定的风险收益基准</small></div>
-      <div class="raroc-stat" :class="status"><span>与门槛差额（百分点）</span><strong>{{ gap }}</strong><small>初始测算值 − 演示门槛</small></div>
+      <div class="raroc-stat raroc-initial-stat" :class="status">
+        <div class="raroc-stat-heading"><span class="raroc-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><path d="m12 12 7-7m-3 0h3v3" /></svg></span><span>初始测算 RAROC</span></div>
+        <strong>{{ percent(initial) }}</strong><small>按初始建议利率 {{ percent(decision.initial_rate) }} 计算</small>
+      </div>
+      <div class="raroc-stat benchmark">
+        <div class="raroc-stat-heading"><span class="raroc-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 13h3v7H4zm6-5h3v12h-3zm6-4h3v16h-3zM3 4h7" /></svg></span><span>演示 RAROC 门槛</span></div>
+        <strong>{{ percent(threshold) }}</strong><small>项目设定的风险收益基准</small>
+      </div>
+      <div class="raroc-stat gap-stat" :class="status">
+        <div class="raroc-stat-heading"><span class="raroc-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path v-if="status === 'below'" d="m4 6 6 6 4-4 6 9m-5 0h5v-5" /><path v-else-if="status === 'above'" d="m4 17 6-6 4 4 6-9m-5 0h5v5" /><path v-else d="M5 9h14M5 15h14" /></svg></span><span>与门槛差额</span></div>
+        <strong>{{ gap }}<em v-if="ready">百分点</em></strong><small>初始测算值 − 演示门槛</small>
+      </div>
     </div>
-    <div class="raroc-conclusion" :class="status" role="status"><b>{{ conclusion.title }}</b><p>{{ conclusion.text }}</p></div>
+    <div class="raroc-conclusion" :class="status" role="status">
+      <span class="raroc-result-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path v-if="status === 'above'" d="m6 12 4 4 8-9" /><path v-else-if="status === 'pending'" d="M12 6v6l4 2" /><path v-else d="M12 6v8m0 4h.01" /></svg></span>
+      <div><b>{{ conclusion.title }}</b><p>{{ conclusion.text }}</p></div>
+    </div>
     <div v-if="adjusted" class="raroc-adjustment"><b>定价校验后的结果</b><p>建议利率由 {{ percent(decision.initial_rate) }} 调整为 {{ percent(decision.suggested_rate) }}，调整后 RAROC 为 <strong>{{ percent(decision.raroc) }}</strong>。上方对比保留初始测算结果，便于识别方案原有的收益缺口。</p></div>
     <details v-if="ready" class="raroc-calculation">
       <summary>查看计算依据</summary>

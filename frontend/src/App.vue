@@ -6,6 +6,7 @@ import PortalPage from './components/PortalPage.vue'
 import LoginGate from './components/LoginGate.vue'
 import ParkRiskWorkspace from './components/ParkRiskWorkspace.vue'
 import RarocComparison from './components/RarocComparison.vue'
+import FinancingEquation from './components/FinancingEquation.vue'
 import EmissionAttribution from './components/EmissionAttribution.vue'
 import CredibilityMetric from './components/CredibilityMetric.vue'
 import ReviewWorkspace from './components/ReviewWorkspace.vue'
@@ -128,8 +129,10 @@ onBeforeUnmount(() => window.removeEventListener('session-expired', clearSession
     </aside>
 
     <main>
+      <div class="workbench-banner">
       <div class="breadcrumb"><span>首页</span><i>/</i><span>{{ terminal }}</span><i>/</i><b>{{ tabTitle(activeTab) }}</b></div>
       <header class="page-hero"><div><h1>{{ tabTitle(activeTab) }}</h1><p v-if="activeTab!=='审核任务清单'">{{ currentMeta.company_name }} · {{ currentMeta.industry }} · {{ scenario }}</p></div><div class="hero-meta"><span class="online"><i></i>模型服务在线</span><span class="version">模型版本 CTI 1.0</span></div></header>
+      </div>
       <div v-if="error" class="error">{{ error }}。请确认 Python 后端已启动。</div>
       <div v-if="loading" class="loading"><i></i>正在调用三引擎计算链...</div>
 
@@ -164,7 +167,7 @@ onBeforeUnmount(() => window.removeEventListener('session-expired', clearSession
 
           <template v-else-if="['融资决策','融资方案'].includes(activeTab)">
             <h2>风险收益约束的动态融资</h2><p class="sub">基础授信 + 转型支持 − 网络风险扣减</p>
-            <div class="finance-flow"><div><span>基础授信</span><b>{{money(company.base_limit)}}</b></div><i>+</i><div class="positive"><span>转型支持</span><b>{{money(company.transition_support)}}</b></div><i>−</i><div class="negative"><span>风险扣减</span><b>{{money(company.network_deduction)}}</b></div><i>=</i><div class="total"><span>建议额度</span><b>{{money(company.final_limit)}}</b></div></div><div class="decision"><span class="tag">{{company.warning_level}}</span><b>建议利率 {{pct(company.suggested_rate)}}</b><p>{{company.action}}。正式授信及合同调整须经银行人工审批。</p></div>
+            <FinancingEquation :decision="company" /><div class="decision"><span class="tag">{{company.warning_level}}</span><b>建议利率 {{pct(company.suggested_rate)}}</b><p>{{company.action}}。正式授信及合同调整须经银行人工审批。</p></div>
             <RarocComparison :decision="company" />
           </template>
 
