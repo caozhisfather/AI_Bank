@@ -1,0 +1,3 @@
+company_id,company_name,industry,base_limit,project_need,data_quality,anomaly_score,p_target,own_risk,first_order_risk,second_order_risk,network_risk,project_progress,fund_usage_match
+DEMO-001,华东示范钢铁有限公司,钢铁,8600,3200,0.92,0.08,0.78,0.22,0.09,0.04,0.35,0.76,0.94
+DEMO-002,临港绿色化工有限公司,化工,6400,2600,0.84,0.16,0.67,0.33,0.12,0.06,0.51,0.63,0.86

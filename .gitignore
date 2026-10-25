@@ -9,7 +9,10 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 .vite/
+data/runtime/
 _stage/
 .codex_tmp/
-*.docx
-*.pdf
+.DS_Store
+.env
+.env.*
+!.env.example

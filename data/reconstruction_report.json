@@ -1,0 +1,69 @@
+{
+  "version": "park-v3",
+  "subject_count": 36,
+  "roles": {
+    "customer": 5,
+    "energy": 3,
+    "infra": 3,
+    "materials": 7,
+    "steel": 12,
+    "supplier": 6
+  },
+  "relationship_count": 101,
+  "case_a": {
+    "正常情景": {
+      "p_target": 0.8261115780580666,
+      "data_quality": 0.9500000000004903,
+      "own_risk": 0.17388842194193344,
+      "first_order_risk": -0.016984434513223907,
+      "second_order_risk": 0.003096012571288686,
+      "network_risk": 0.15999999999999823,
+      "final_limit": 3512.0
+    },
+    "天然气价格上涨30%": {
+      "p_target": 0.74,
+      "data_quality": 0.9500000000004903,
+      "own_risk": 0.26,
+      "first_order_risk": 0.04628414285788679,
+      "second_order_risk": 0.00371585714212286,
+      "network_risk": 0.31000000000000966,
+      "final_limit": 3341.0
+    },
+    "电价上涨20%": {
+      "p_target": 0.8056515780580665,
+      "data_quality": 0.9500000000004903,
+      "own_risk": 0.19434842194193347,
+      "first_order_risk": -0.0005432546748219969,
+      "second_order_risk": 0.0039046152107998743,
+      "network_risk": 0.19770978247791135,
+      "final_limit": 3469.0
+    },
+    "煤价上涨25%": {
+      "p_target": 0.7379835780580666,
+      "data_quality": 0.9500000000004903,
+      "own_risk": 0.2620164219419334,
+      "first_order_risk": -0.014127704639559285,
+      "second_order_risk": 0.003442928245307646,
+      "network_risk": 0.2513316455476818,
+      "final_limit": 3382.0
+    },
+    "碳价上涨50%": {
+      "p_target": 0.7843515780580665,
+      "data_quality": 0.9500000000004903,
+      "own_risk": 0.21564842194193345,
+      "first_order_risk": -0.01308965623730736,
+      "second_order_risk": 0.0034362290257983373,
+      "network_risk": 0.20599499473042446,
+      "final_limit": 3448.0
+    },
+    "核心客户需求下降20%": {
+      "p_target": 0.7543615780580666,
+      "data_quality": 0.9500000000004903,
+      "own_risk": 0.24563842194193342,
+      "first_order_risk": 0.0030364316243363942,
+      "second_order_risk": 0.004538135829628707,
+      "network_risk": 0.25321298939589854,
+      "final_limit": 3392.0
+    }
+  }
+}

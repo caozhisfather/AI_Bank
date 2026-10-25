@@ -1,0 +1,23 @@
+{
+  "companies": [
+    {"company_id":"X01","company_name":"示例钢铁企业","industry":"钢铁","base_limit":3000,"project_need":1000,"shock_sensitivity":0.31}
+  ],
+  "energy_performance": [
+    {"company_id":"X01","period":"2025-01","output":100,"energy_type":"coal","energy":38,"emission_factor":2.5},
+    {"company_id":"X01","period":"2025-01","output":100,"energy_type":"electricity","energy":22,"emission_factor":0.55},
+    {"company_id":"X01","period":"2025-12","output":106,"energy_type":"coal","energy":31,"emission_factor":2.5},
+    {"company_id":"X01","period":"2025-12","output":106,"energy_type":"electricity","energy":26,"emission_factor":0.55}
+  ],
+  "transition_projects": [
+    {"company_id":"X01","project_name":"高炉节能与绿电替代","project_need":1000,"project_progress":0.86,"milestone_delay_days":3}
+  ],
+  "fund_usage": [
+    {"company_id":"X01","fund_usage_match":0.96,"own_fund_arrival":0.91,"payment_verified":true}
+  ],
+  "network_edges": [
+    {"source":"X01","target":"X02","weight":0.31,"relation_type":"供应依赖"}
+  ],
+  "external_risks": [
+    {"scenario":"天然气价格上涨30%","driver":"天然气价格","change":0.30}
+  ]
+}
