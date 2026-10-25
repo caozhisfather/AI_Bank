@@ -119,34 +119,66 @@ main { grid-column: 2; width: 100%; max-width: 1700px; min-width: 0; padding: 24
 .credibility-metric button:hover { text-decoration: underline; }
 .credibility-metric button i { font-style: normal; }
 .credibility-metric button:focus-visible { outline: 2px solid #16815e; outline-offset: 4px; }
+.attribution-metric, .risk-metric, .financing-metric {
+  min-height: 128px;
+  padding: 18px 17px 15px 74px;
+  border: 0;
+  border-radius: 8px;
+  background-color: #fff;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+}
+.attribution-metric::before, .risk-metric::before, .financing-metric::before { display: none; }
+.attribution-metric, .attribution-metric.attribution-caution { background-image: url('./assets/metric-attribution.svg'); }
+.risk-metric { background-image: url('./assets/metric-risk.svg'); }
+.financing-metric { background-image: url('./assets/metric-financing.svg'); }
 .workspace { min-height: 470px; margin-top: 13px; padding: 24px 25px; border: 1px solid #dce3df; border-radius: 4px; background: #fff; box-shadow: 0 5px 18px rgba(27,50,41,.04); }
 .workspace h2 { margin: 0 0 5px; color: #20312a; font-family: SimSun, "Microsoft YaHei", serif; font-size: 19px; }
 .workspace h2::before { content: ""; display: inline-block; width: 4px; height: 16px; margin: 0 9px -2px 0; background: #a61b29; }
 .attribution-workspace, .probability-workspace { min-height: auto; }
-.attribution-workspace { scroll-margin-top: 96px; }
+.attribution-workspace { position: relative; scroll-margin-top: 96px; }
 .attribution-workspace:focus-visible { outline: 2px solid #79ac8f; outline-offset: 3px; }
 .attribution-context { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin: 15px 0 18px; color: #75867c; font-size: 11px; }
 .attribution-context i { margin: 0 12px; font-style: normal; color: #a4b3a9; }
 .attribution-context em { display: inline-block; margin-left: 10px; padding: 4px 7px; border: 1px solid #e4dac3; background: #fbf8f0; color: #92713d; font-size: 10px; font-style: normal; }
-.attribution-net-change { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 20px; padding: 15px 18px; border: 1px solid #e2e9e4; background: #f8faf8; }
-.attribution-net-change > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px 20px; }
-.attribution-net-change span { color: #63776a; font-size: 12px; }
-.attribution-net-change b { font-size: 26px; font-variant-numeric: tabular-nums; }
-.attribution-net-change p { margin: 0; color: #829086; font-size: 10px; }
+.attribution-workspace .attribution-context > span:last-child { position: absolute; top: 24px; right: 25px; }
+.attribution-body { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 22px; align-items: center; }
+.attribution-summary { align-self: start; padding-top: 8px; }
+.attribution-net-change { display: flex; flex-direction: column; gap: 12px; padding: 22px 18px; border: 1px solid #e4ece7; border-radius: 5px; background: linear-gradient(115deg, #f6faf8, #f0f8f4); }
+.attribution-net-change span { color: #6d7b77; font-size: 15px; }
+.attribution-net-change b { font-size: 34px; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.attribution-baseline { margin: 14px 18px 5px; color: #839088; font-size: 12px; }
+.attribution-change-direction { margin: 0 18px; font-size: 13px; font-weight: 600; }
+.attribution-change-direction > span { margin-right: 5px; font-size: 20px; }
 .emission-attribution .reduction { color: #17835e; }
 .emission-attribution .increase { color: #bc6a55; }
-.attribution-waterfall { margin: 20px 0 0; }
-.attribution-chart-meta { display: flex; justify-content: space-between; gap: 12px; color: #88968c; font-size: 10px; }
+.attribution-waterfall { min-width: 0; margin: 0; }
+.attribution-chart-meta { display: flex; justify-content: flex-end; gap: 12px; color: #88968c; font-size: 11px; }
 .attribution-chart-meta > div { display: flex; gap: 16px; }
 .attribution-chart-meta i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 1px; }
-.reduction-key { background: #17835e; }
-.increase-key { background: #bc6a55; }
+.reduction-key { background: #009665; }
+.increase-key { background: #e34444; }
 .attribution-chart-scroll { overflow-x: auto; }
 .attribution-chart-scroll svg { display: block; width: 100%; min-width: 540px; max-height: 300px; }
 .waterfall-tick { fill: #8b9990; font: 11px sans-serif; }
 .waterfall-label { fill: #53685a; font: 13px sans-serif; }
 .waterfall-value { font: 600 14px sans-serif; font-variant-numeric: tabular-nums; }
-.attribution-conclusion { margin: 4px 0 0; padding: 20px 22px; border-left: 5px solid #198460; background: #e7f2eb; color: #194f37; font-size: 17px; font-weight: 600; line-height: 1.9; }
+.attribution-conclusion { display: flex; align-items: center; gap: 16px; margin: 16px 0 0; padding: 15px 18px; border: 1px solid #d7e9e0; border-left: 5px solid #009665; border-radius: 5px; background: linear-gradient(110deg, #f0f8f4, #f7fbf9); color: #194f37; font-size: 14px; font-weight: 500; line-height: 1.9; }
+.attribution-conclusion p { margin: 0; }
+.attribution-conclusion-icon { display: grid; place-items: center; flex: 0 0 32px; height: 32px; border-radius: 50%; background: #009665; color: #fff; }
+.attribution-conclusion-icon svg { width: 24px; height: 24px; }
+@media (max-width: 1100px) {
+  .attribution-body { grid-template-columns: 180px minmax(0, 1fr); gap: 12px; }
+  .attribution-net-change b { font-size: 30px; }
+}
+@media (max-width: 720px) {
+  .attribution-workspace .attribution-context > span:last-child { position: static; }
+  .attribution-body { grid-template-columns: minmax(0, 1fr); }
+  .attribution-summary { padding-top: 0; }
+  .attribution-net-change { flex-direction: row; align-items: center; justify-content: space-between; }
+  .attribution-conclusion { align-items: flex-start; gap: 12px; }
+}
 .probability-workspace { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px 28px; }
 .probability-workspace h2 { margin: 0; }
 .assessment-probability { margin: 0 0 0 auto; color: #16815c; font: 700 46px Georgia, serif; font-variant-numeric: tabular-nums; }

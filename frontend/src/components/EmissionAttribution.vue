@@ -27,16 +27,21 @@ const ticks = computed(() => Array.from({ length: Math.round((ceiling.value - fl
 const axisLabel = value => `${value.toFixed(Math.max(0, Math.min(4, -Math.floor(Math.log10(axisStep.value)))))}%`
 const y = value => 232 - (value - floor.value) / (ceiling.value - floor.value) * 196
 const x = index => 110 + index * 170
-const color = item => item.value < 0 ? '#17835e' : '#bc6a55'
+const color = item => item.value < 0 ? '#009665' : '#e34444'
 const chartDescription = computed(() => steps.value.map(item => `${item.label}：${item.missing ? '待补充' : signed(item.value)}`).join('；'))
 </script>
 
 <template>
   <div class="emission-attribution">
     <div class="attribution-context"><span>{{ result.base_period }} <i>→</i> {{ result.current_period }}</span><span>{{ result.scope }}<em v-if="!result.process_available">工艺数据待补充</em></span></div>
-    <div class="attribution-net-change"><div><span>排放净变化</span><b :class="netChange < 0 ? 'reduction' : netChange > 0 ? 'increase' : ''">{{ signed(netChange) }}</b></div><p>变化量 ÷ 基期排放量 × 100%</p></div>
+    <div class="attribution-body">
+    <div class="attribution-summary">
+      <div class="attribution-net-change" title="变化量 ÷ 基期排放量 × 100%"><span>排放净变化</span><b :class="netChange < 0 ? 'reduction' : netChange > 0 ? 'increase' : ''">{{ signed(netChange) }}</b></div>
+      <p class="attribution-baseline">较基期（{{ result.base_period }}）</p>
+      <p class="attribution-change-direction" :class="netChange < 0 ? 'reduction' : netChange > 0 ? 'increase' : ''"><span aria-hidden="true">{{ netChange < 0 ? '↓' : netChange > 0 ? '↑' : '→' }}</span> {{ Math.abs(netChange).toFixed(2) }} 个百分点</p>
+    </div>
     <figure class="attribution-waterfall" aria-label="四因素减排归因百分比瀑布图">
-      <div class="attribution-chart-meta"><span title="各项均以同一基期排放量为分母；按原值计算，显示值四舍五入。">各因素对排放变化的影响（相对基期）</span><div><span><i class="reduction-key"></i>负值：减排</span><span><i class="increase-key"></i>正值：增排</span></div></div>
+      <div class="attribution-chart-meta" title="各项均以同一基期排放量为分母；按原值计算，显示值四舍五入。"><div><span><i class="reduction-key"></i>负值：减排</span><span><i class="increase-key"></i>正值：增排</span></div></div>
       <div class="attribution-chart-scroll"><svg viewBox="0 0 800 292" role="img" :aria-label="chartDescription">
         <g v-for="tick in ticks" :key="tick"><line x1="70" x2="778" :y1="y(tick)" :y2="y(tick)" stroke="#e4ebe6" /><text x="61" :y="y(tick) + 4" text-anchor="end" class="waterfall-tick">{{ axisLabel(tick) }}</text></g>
         <line x1="70" x2="778" :y1="y(0)" :y2="y(0)" stroke="#91a69a" />
@@ -49,6 +54,7 @@ const chartDescription = computed(() => steps.value.map(item => `${item.label}�
         </g>
       </svg></div>
     </figure>
-    <p class="attribution-conclusion">{{ result.conclusion }}</p>
+    </div>
+    <div class="attribution-conclusion"><span class="attribution-conclusion-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M19 4C10 3 5 8 5 14c0 3 2 5 5 6 0-6 3-10 8-13-4 4-6 8-7 13 7-2 10-9 8-16Z" fill="currentColor" /></svg></span><p>{{ result.conclusion }}</p></div>
   </div>
 </template>

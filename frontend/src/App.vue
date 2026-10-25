@@ -137,8 +137,8 @@ onBeforeUnmount(() => window.removeEventListener('session-expired', clearSession
         <section class="metrics">
           <CredibilityMetric v-if="!isOperating" :attribution="analysis.lmdi" @show-evidence="showCredibility" />
           <MetricCard v-if="isOperating" label="主要商品或服务" :value="company.product" />
-          <MetricCard label="园区综合风险" :value="pct(company.network_risk)" :delta="analysis.scenario!=='正常情景'?`${((company.network_risk-normal.network_risk)*100).toFixed(2)}个百分点`:''" danger />
-          <MetricCard label="建议融资额度" :value="isOperating?'未适配融资模型':money(company.final_limit)" :delta="!isOperating&&analysis.scenario!=='正常情景'?delta(company.final_limit,normal.final_limit,'万元'):''" />
+          <MetricCard class="risk-metric" label="园区综合风险" :value="pct(company.network_risk)" :delta="analysis.scenario!=='正常情景'?`${((company.network_risk-normal.network_risk)*100).toFixed(2)}个百分点`:''" danger />
+          <MetricCard class="financing-metric" label="建议融资额度" :value="isOperating?'未适配融资模型':money(company.final_limit)" :delta="!isOperating&&analysis.scenario!=='正常情景'?delta(company.final_limit,normal.final_limit,'万元'):''" />
         </section>
 
         <section v-if="isAssessment&&!isOperating" ref="credibilitySection" class="workspace attribution-workspace" tabindex="-1" aria-label="减排归因分析">

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="128" viewBox="0 0 390 128" preserveAspectRatio="none">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="#FFF8F9"/></linearGradient>
+ <linearGradient id="wave" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#E95C68" stop-opacity=".26"/><stop offset="1" stop-color="#E95C68" stop-opacity="0"/></linearGradient>
+</defs>
+<rect x="1" y="1" width="388" height="126" rx="8" fill="url(#bg)" stroke="#EAE6E7"/>
+<rect x="1" y="2" width="3" height="124" rx="1.5" fill="#C51E39"/>
+<rect x="18" y="17" width="44" height="44" rx="10" fill="#FDEBED"/>
+<path d="M40 25L51 29V39C51 47 46 52 40 56C34 52 29 47 29 39V29Z" fill="none" stroke="#D62243" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M40 30V48" stroke="#D62243" stroke-width="2.6" stroke-linecap="round"/><circle cx="40" cy="51.5" r="1.5" fill="#D62243"/>
+<path d="M243 116C257 100 268 82 281 79C294 75 304 102 317 97C329 91 339 78 349 85C360 92 367 100 388 76V126H243Z" fill="url(#wave)"/>
+<path d="M243 116C257 100 268 82 281 79C294 75 304 102 317 97C329 91 339 78 349 85C360 92 367 100 388 76" stroke="#E97A86" opacity=".25" stroke-width="1.4" fill="none"/>
+</svg>

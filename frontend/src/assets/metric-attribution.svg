@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="128" viewBox="0 0 390 128" preserveAspectRatio="none">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="#F1FAF5"/></linearGradient>
+ <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#007E50"/><stop offset="1" stop-color="#20AA79"/></linearGradient>
+</defs>
+<rect x="1" y="1" width="388" height="126" rx="8" fill="url(#bg)" stroke="#E2EAE6"/>
+<path d="M2 9Q2 2 9 2H5V126H2Z" fill="#00865A"/>
+<rect x="18" y="17" width="44" height="44" rx="10" fill="#E6F5EF"/>
+<path d="M50 27C36 25 29 33 29 44C29 50 32 54 36 55C35 45 39 39 49 32C44 39 40 45 38 53C50 51 54 40 50 27Z" fill="url(#leaf)"/>
+<g fill="#37AE7B" opacity=".16"><path d="M333 126C328 107 326 94 330 80C344 91 346 107 333 126Z"/><path d="M339 126C340 99 353 88 369 81C369 101 358 117 339 126Z"/><path d="M329 127C319 104 309 102 298 101C302 118 311 125 329 127Z"/></g>
+<path d="M336 127C333 112 339 100 352 91" fill="none" stroke="#54B88C" stroke-width="1.5" opacity=".2"/>
+</svg>
