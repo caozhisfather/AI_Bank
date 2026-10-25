@@ -765,14 +765,29 @@ tbody tr:hover { background: #f2f7f4; }
   isolation: isolate;
   height: var(--graph-stage-height);
   min-width: 0;
+  overflow: hidden;
   background: #f8faf9;
 }
-.graph-stage .directed-graph-canvas { height: 100%; padding: 58px 12px 58px; }
+.graph-stage .directed-graph-canvas { width: 100%; height: 100%; padding: 0; }
 .graph-stage .risk-graph { height: 100%; width: 100%; }
 .graph-stage .directed-graph-legend { position: absolute; inset: auto 14px 12px; z-index: 1; width: fit-content; max-width: calc(100% - 28px); gap: 8px 16px; padding: 8px 12px; border: 1px solid #e1e9e4; border-radius: 8px; background: #ffffffeb; font-size: 12px; }
 .graph-expand-button { position: absolute; top: 14px; left: 14px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 9px 13px; border: 1px solid #d7e4dc; border-radius: 9px; color: #315a43; background: #fffffff2; box-shadow: 0 3px 12px #173c2a06; font-size: 13px; }
 .graph-expand-button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .graph-expand-button:hover { background: #edf6f0; border-color: #8fb69f; }
+.graph-zoom-controls { position: absolute; right: 14px; bottom: 65px; z-index: 2; display: flex; align-items: center; gap: 2px; padding: 4px; border: 1px solid #d2e0d7; border-radius: 10px; background: #fffffff5; box-shadow: 0 3px 16px #163e2a12; }
+.graph-zoom-controls button { display: grid; place-items: center; width: 40px; min-height: 40px; padding: 5px; border: 0; border-radius: 7px; color: #2b6648; background: transparent; font-size: 24px; line-height: 1; }
+.graph-zoom-controls button:hover:not(:disabled) { color: #fff; background: #0c7052; }
+.graph-zoom-controls button:disabled { opacity: .35; cursor: default; }
+.graph-zoom-controls button:focus-visible, .interactive-risk-graph:focus-visible { outline: 3px solid #74b494; outline-offset: 2px; }
+.graph-zoom-value { min-width: 47px; color: #496552; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; }
+.graph-zoom-controls .graph-fit-button { width: auto; margin-left: 4px; padding: 5px 11px; border-left: 1px solid #e2eae5; border-radius: 0 7px 7px 0; font-size: 13px; }
+.interactive-risk-graph { touch-action: none; user-select: none; cursor: grab; overflow: hidden; }
+.interactive-risk-graph:focus { outline: none; }
+.interactive-risk-graph:focus-visible { outline: 3px solid #74b494; outline-offset: -3px; }
+.interactive-risk-graph.is-panning { cursor: grabbing; }
+.interactive-risk-graph .graph-node, .interactive-risk-graph .directed-edge { cursor: pointer; }
+.graph-interaction-hint { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 16px 0; color: #446d54; font-size: 12px; line-height: 1.7; }
+.graph-interaction-hint span { color: #7a8e80; }
 .graph-expand-button:focus-visible, .graph-controls-toggle:focus-visible { outline: 3px solid #74b494; outline-offset: 3px; }
 .graph-floating-controls { position: absolute; top: 14px; right: 14px; z-index: 3; width: min(380px, calc(100% - 28px)); max-height: calc(var(--graph-stage-height) - 28px); border: 1px solid #cbded1; border-radius: 11px; color: #244b37; background: #fffffff7; box-shadow: 0 6px 24px #1c46321c; }
 .graph-floating-controls:not([open]) { width: min(290px, calc(100% - 160px)); }
@@ -799,12 +814,12 @@ tbody tr:hover { background: #f2f7f4; }
 .graph-controls-content .graph-business-scope, .graph-controls-content .graph-scope-buttons { width: 100%; gap: 4px; padding: 3px; }
 .graph-controls-content .graph-business-scope button, .graph-controls-content .graph-scope-buttons button { flex: 1; padding: 9px 7px; gap: 5px; font-size: 13px; }
 .graph-stage:fullscreen { --graph-stage-height: 100dvh; width: 100vw; height: 100dvh; }
-.graph-stage:fullscreen .directed-graph-canvas { padding-top: 80px; padding-bottom: 66px; }
+.graph-stage:fullscreen .directed-graph-canvas { padding: 0; }
 .graph-fullscreen-error { margin: 10px 16px; color: #94713a; font-size: 12px; }
 .risk-graph-shell .directed-graph-inspector { min-height: 0; }
 @media (max-width: 620px) {
   .graph-stage { --graph-stage-height: clamp(420px, 68dvh, 640px); }
-  .graph-stage .directed-graph-canvas { padding-top: 88px; padding-bottom: 95px; }
+  .graph-stage .directed-graph-canvas { padding: 0; }
   .graph-stage .directed-graph-legend { font-size: 11px; }
   .graph-controls-toggle { min-height: 62px; padding: 9px 10px; gap: 6px; }
   .graph-controls-toggle small { font-size: 10px; }

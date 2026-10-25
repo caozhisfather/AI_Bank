@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, shallowRef, useId, watch } f
 import { dependencyEdges, dependencyNeighborhoodView, networkHeight, networkLayout, networkView } from '../utils/networkView'
 import { routeControlPoint } from '../utils/graphRoute'
 import { graphTransitionFrame } from '../utils/graphTransition'
+import { MAX_GRAPH_ZOOM, MIN_GRAPH_ZOOM, zoomGraphAt } from '../utils/graphViewport'
 import { businessGrouping, groupedBusinessView, keyRiskView, stressPriorityIds, worseningSubjects } from '../utils/graphPresentation'
 const props=defineProps({graph:{type:Object,default:()=>({nodes:[],edges:[]})},explanation:Object,selectedCompanyId:String,mode:{type:String,default:'dependency'},stressed:Boolean})
 const emit=defineEmits(['inspect','filter','select'])
@@ -26,6 +27,7 @@ const defaultFilters=computed(()=>kind.value==='all'&&order.value==='all'&&busin
 function resetFilters(){
   kind.value='all';order.value='all';businessScope.value='direct';compact.value=true
   expanded.value=new Set();hover.value=null;hoverEdge.value=null;bundle.value=null
+  fitGraph()
 }
 watch([kind,order],()=>emit('filter',{kind:kind.value,order:order.value}),{immediate:true})
 const allNodes=computed(()=>props.graph.nodes||[]),rawEdges=computed(()=>props.graph.edges||[])
@@ -66,6 +68,59 @@ const positions=computed(()=>new Map(networkLayout(fullPresentation.value.nodes,
 const targetNodes=computed(()=>presentation.value.nodes.filter(node=>positions.value.has(node.company_id)).map(node=>({...positions.value.get(node.company_id),...node,focus:node.company_id===origin.value?1:0,opacity:1})))
 const displayed=shallowRef({nodes:[],edges:[],height:540})
 const canvasHeight=computed(()=>displayed.value.height??targetCanvasHeight.value)
+const graphSvg=ref(null),viewport=ref({scale:1,x:0,y:0}),panning=ref(false)
+const viewportTransform=computed(()=>`translate(${viewport.value.x} ${viewport.value.y}) scale(${viewport.value.scale})`)
+let panGesture=null,suppressClickUntil=0
+function fitGraph(){viewport.value={scale:1,x:0,y:0}}
+function graphPoint(event){
+  const svg=graphSvg.value,matrix=svg?.getScreenCTM()
+  if(!matrix)return null
+  const point=svg.createSVGPoint();point.x=event.clientX;point.y=event.clientY
+  return point.matrixTransform(matrix.inverse())
+}
+function zoomGraph(factor,anchor={x:420,y:canvasHeight.value/2}){
+  viewport.value=zoomGraphAt(viewport.value,viewport.value.scale*factor,anchor)
+}
+function wheelGraph(event){
+  const anchor=graphPoint(event)
+  if(!anchor)return
+  const unit=event.deltaMode===1?16:event.deltaMode===2?graphSvg.value.clientHeight:1
+  const delta=Math.max(-400,Math.min(400,event.deltaY*unit))
+  zoomGraph(Math.exp(-delta*.0015),anchor)
+}
+function startPan(event){
+  if(event.button!==0||!event.isPrimary||event.target.closest('.graph-node, .directed-edge'))return
+  const point=graphPoint(event)
+  if(!point)return
+  panGesture={id:event.pointerId,point,x:viewport.value.x,y:viewport.value.y,clientX:event.clientX,clientY:event.clientY}
+  graphSvg.value.setPointerCapture(event.pointerId)
+}
+function movePan(event){
+  if(!panGesture||event.pointerId!==panGesture.id)return
+  if(!panning.value&&Math.hypot(event.clientX-panGesture.clientX,event.clientY-panGesture.clientY)<4)return
+  const point=graphPoint(event)
+  if(!point)return
+  panning.value=true;hover.value=null;hoverEdge.value=null
+  viewport.value={...viewport.value,x:panGesture.x+point.x-panGesture.point.x,y:panGesture.y+point.y-panGesture.point.y}
+}
+function endPan(event){
+  if(!panGesture||event.pointerId!==panGesture.id)return
+  if(panning.value)suppressClickUntil=performance.now()+150
+  panGesture=null;panning.value=false
+  if(graphSvg.value?.hasPointerCapture(event.pointerId))graphSvg.value.releasePointerCapture(event.pointerId)
+}
+function graphClick(event){if(performance.now()<suppressClickUntil){event.stopPropagation();event.preventDefault()}}
+function graphKey(event){
+  if(event.target!==graphSvg.value||event.ctrlKey||event.metaKey||event.altKey)return
+  const moves={ArrowLeft:[32,0],ArrowRight:[-32,0],ArrowUp:[0,32],ArrowDown:[0,-32]}
+  if(event.key==='+'||event.key==='=')zoomGraph(1.2)
+  else if(event.key==='-')zoomGraph(1/1.2)
+  else if(event.key==='0')fitGraph()
+  else if(moves[event.key]){const [x,y]=moves[event.key];viewport.value={...viewport.value,x:viewport.value.x+x,y:viewport.value.y+y}}
+  else return
+  event.preventDefault()
+}
+watch([()=>props.mode,()=>props.selectedCompanyId,businessScope],fitGraph)
 let animationFrame=0,lastMode=props.mode
 watch(()=>({nodes:targetNodes.value,edges:renderView.value.edges.map(edge=>({...edge,opacity:1})),height:targetCanvasHeight.value,mode:props.mode}),target=>{
   cancelAnimationFrame(animationFrame)
@@ -137,6 +192,12 @@ function activateEdge(edge){if(edge.is_bundle)bundle.value=edge;else emit('inspe
         <svg viewBox="0 0 20 20" aria-hidden="true"><path v-if="!fullscreen" d="M7 3H3v4m10-4h4v4M3 13v4h4m10-4v4h-4"/><path v-else d="M3 7h4V3m6 0v4h4M7 17v-4H3m10 4v-4h4"/></svg>
         {{fullscreen?'退出全屏':'全屏看图'}}
       </button>
+      <div class="graph-zoom-controls" role="group" aria-label="图谱缩放与复位">
+        <button type="button" :disabled="viewport.scale>=MAX_GRAPH_ZOOM-.001" aria-label="放大图谱" title="放大图谱" @click="zoomGraph(1.2)">+</button>
+        <span class="graph-zoom-value" aria-label="当前缩放比例">{{Math.round(viewport.scale*100)}}%</span>
+        <button type="button" :disabled="viewport.scale<=MIN_GRAPH_ZOOM+.001" aria-label="缩小图谱" title="缩小图谱" @click="zoomGraph(1/1.2)">−</button>
+        <button type="button" class="graph-fit-button" title="恢复初始缩放并居中图谱（快捷键 0）" @click="fitGraph">适应画布</button>
+      </div>
       <details class="graph-floating-controls" @keydown.esc.stop="event=>event.currentTarget.open=false">
         <summary class="graph-controls-toggle">
           <svg class="graph-controls-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg>
@@ -173,7 +234,8 @@ function activateEdge(edge){if(edge.is_bundle)bundle.value=edge;else emit('inspe
         </div>
       </details>
     <div class="directed-graph-canvas">
-      <svg class="risk-graph" :viewBox="`0 0 840 ${canvasHeight}`" preserveAspectRatio="xMidYMid meet" role="img" :aria-label="business?'园区业务依赖关系图':'园区风险传导图'">
+      <svg ref="graphSvg" class="risk-graph interactive-risk-graph" :class="{'is-panning':panning}" :viewBox="`0 0 840 ${canvasHeight}`" preserveAspectRatio="xMidYMid meet" role="img" tabindex="0" :aria-label="business?'园区业务依赖关系图，可滚轮缩放、拖动空白处移动':'园区风险传导图，可滚轮缩放、拖动空白处移动'" @wheel.prevent="wheelGraph" @pointerdown="startPan" @pointermove="movePan" @pointerup="endPan" @pointercancel="endPan" @lostpointercapture="endPan" @click.capture="graphClick" @keydown="graphKey">
+        <g :transform="viewportTransform">
         <g v-if="business&&businessScope==='overview'" class="overview-sections" aria-hidden="true"><rect x="220" y="28" width="400" height="100" rx="12"/><text x="420" y="20">能源服务</text><rect x="40" y="150" width="130" :height="Math.max(0,canvasHeight-450)" rx="12"/><text x="105" y="142">原料与生产配套</text><rect x="220" y="150" width="400" :height="Math.max(0,canvasHeight-450)" rx="12"/><text x="420" y="142">钢铁与金属加工</text><rect x="670" y="150" width="130" :height="Math.max(0,canvasHeight-450)" rx="12"/><text x="735" y="142">下游客户</text><rect x="32" :y="canvasHeight-265" width="776" height="100" rx="12"/><text x="420" :y="canvasHeight-273">建材与资源利用</text><rect x="156" :y="canvasHeight-125" width="530" height="100" rx="12"/><text x="420" :y="canvasHeight-133">公共设施服务</text></g>
         <defs><marker v-for="item in classes" :key="item.key" :id="`${graphId}-${item.key}`" markerWidth="10" markerHeight="10" refX="9" refY="5" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L0,10 L9,5 z" :fill="item.color" /></marker></defs>
         <g v-if="!business" class="risk-zone-labels" aria-hidden="true"><text x="160" y="48" text-anchor="middle">风险传入</text><text x="420" y="48" text-anchor="middle">当前分析企业</text><text x="680" y="48" text-anchor="middle">风险传出</text><line x1="340" x2="340" y1="75" :y2="canvasHeight-130"/><line x1="500" x2="500" y1="75" :y2="canvasHeight-130"/></g>
@@ -199,12 +261,14 @@ function activateEdge(edge){if(edge.is_bundle)bundle.value=edge;else emit('inspe
           <title>{{node.is_group?`${node.company_name} · ${node.member_count}家，颜色为成员最高风险，点击展开`:`${node.company_name} · 正常 ${pct(node.baseline_risk)} · 当前 ${pct(node.risk)}`}}</title>
         </g>
         </g>
+        </g>
       </svg>
       <p v-if="!edges.length" class="graph-empty">当前筛选没有可展示的{{business?'依赖关系':'传入或传出路径'}}。</p>
     </div>
     <div class="directed-graph-legend"><div class="directed-node-legend"><span><i class="low"></i>低风险</span><span><i class="medium"></i>中风险</span><span><i class="high"></i>高风险</span></div><span>{{stressed?'节点颜色为压力情景风险':'节点颜色为正常情景风险'}} · {{compact?'分组取成员最高风险':'线宽为依赖强度'}} · 方形：能源 · 菱形：设施</span></div>
     </div>
     <p v-if="fullscreenError" class="graph-fullscreen-error" role="status">{{fullscreenError}}</p>
+    <p class="graph-interaction-hint">滚轮缩放 · 按住空白处拖动 · 点击“适应画布”复位<span>键盘：+ / − 缩放，方向键移动，0 复位</span></p>
     <p class="directed-graph-guide">{{business?(businessScope==='overview'?'依赖方 → 被依赖方；当前为园区总览，点击企业查看其两阶依赖关系。':'依赖方 → 被依赖方；展示与目标企业相连的一、二阶依赖链，点击企业切换分析对象。'):'影响来源 → 当前企业 → 受影响主体；绿色负值为园区缓释，红色正值为风险传入，单位为百分点。'}}</p>
     <div v-if="bundle" class="graph-bundle-detail" aria-label="分组合并关系明细"><div><b>{{edgeName(bundle)}} · {{bundle.relation_count}}条成员关系</b><button aria-label="关闭分组关系明细" @click="bundle=null">×</button></div><p>{{business?'箭头为依赖方向；分组不代表成员之间可以互相替代。':'箭头为风险影响方向；每条成员连线保留独立贡献。'}}</p><ul><li v-for="relation in bundle.relations" :key="relation.relation_id"><span>{{rawName(relation.source)}} → {{rawName(relation.target)}}<small>{{relation.commodity||relation.relation_type}} · {{pct(relation.weight)}}<template v-if="!business"> · 净影响 {{pp(relation.direct_contribution)}}</template></small></span><button class="park-text-button" @click="emit('inspect',{type:'edge',id:relation.relation_id})">查看</button></li></ul></div>
     <div class="directed-graph-inspector"><div><b v-if="compact">{{targetNodes.length}} 个图示节点 · {{renderView.edges.length}} 条图示连线 · 覆盖 {{presentation.subject_count}} 个主体 / {{presentation.relation_count}} 条关系</b><b v-else>{{targetNodes.length}} 个主体 · {{view.edges.length}} 条关系</b><span>{{business?'深色为当前企业直接关系；悬停主体突出连线；点击切换分析':'点击节点或连线查看详情'}}</span></div><p v-if="compact">分组颜色取成员最高风险；点击合并连线查看原始成员。<template v-if="!business">当前为关键链路，完整范围含 {{view.total_subject_count||scope.ids.size}} 个主体、{{view.total_relation_count??scope.edges.length}} 条关系；风险汇总不受精简影响，下方明细保留当前筛选范围。</template><template v-else>风险与授信仍逐企业计算。</template></p></div>

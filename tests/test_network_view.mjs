@@ -5,6 +5,41 @@ import { routeControlPoint } from '../frontend/src/utils/graphRoute.js'
 import { graphTransitionFrame } from '../frontend/src/utils/graphTransition.js'
 import { businessGrouping, groupedBusinessView, keyRiskView, stressPriorityIds, worseningSubjects } from '../frontend/src/utils/graphPresentation.js'
 import { effectLabel,signedImpact } from '../frontend/src/utils/riskDisplay.js'
+import { MAX_GRAPH_ZOOM, MIN_GRAPH_ZOOM, zoomGraphAt } from '../frontend/src/utils/graphViewport.js'
+
+test('zoom keeps the graph point under the mouse fixed after panning', () => {
+  const viewport = { scale: 1.4, x: 130, y: -27 }
+  const anchor = { x: 411.5, y: 233 }
+  const graphPoint = { x: (anchor.x - viewport.x) / viewport.scale, y: (anchor.y - viewport.y) / viewport.scale }
+  const next = zoomGraphAt(viewport, 2.7, anchor)
+  assert.ok(Math.abs(graphPoint.x * next.scale + next.x - anchor.x) < 1e-9)
+  assert.ok(Math.abs(graphPoint.y * next.scale + next.y - anchor.y) < 1e-9)
+  assert.deepEqual(viewport, { scale: 1.4, x: 130, y: -27 })
+})
+
+test('repeated zoom in and out preserves a translated view without drift', () => {
+  const start = { scale: 1, x: -70, y: 120 }
+  const anchor = { x: 600, y: 180 }
+  let viewport = start
+  for (let i = 0; i < 100; i++) {
+    viewport = zoomGraphAt(viewport, viewport.scale * 1.2, anchor)
+    viewport = zoomGraphAt(viewport, viewport.scale / 1.2, anchor)
+  }
+  assert.ok(Math.abs(viewport.scale - start.scale) < 1e-9)
+  assert.ok(Math.abs(viewport.x - start.x) < 1e-9)
+  assert.ok(Math.abs(viewport.y - start.y) < 1e-9)
+})
+
+test('extreme wheel inputs stop at zoom limits while retaining the focal point', () => {
+  const start = { scale: 1, x: 0, y: 0 }, anchor = { x: 420, y: 270 }
+  for (const [requested, limit] of [[0, MIN_GRAPH_ZOOM], [1000, MAX_GRAPH_ZOOM]]) {
+    const result = zoomGraphAt(start, requested, anchor)
+    assert.equal(result.scale, limit)
+    assert.ok(Math.abs(anchor.x * result.scale + result.x - anchor.x) < 1e-9)
+    assert.ok(Math.abs(anchor.y * result.scale + result.y - anchor.y) < 1e-9)
+    assert.deepEqual(zoomGraphAt(result, requested, anchor), result)
+  }
+})
 const edge = (source, target, dependency_class = 'supply') => ({ source, target, dependency_class, relation_id: `${source}-${target}-${dependency_class}` })
 const edges = [edge('U', 'M', 'energy'), edge('M', 'A'), edge('A', 'B', 'energy'), edge('B', 'C'), edge('C', 'H'), edge('M', 'S'), edge('Z', 'B')]
 
