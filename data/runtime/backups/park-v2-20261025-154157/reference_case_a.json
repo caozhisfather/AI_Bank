@@ -1,0 +1,43 @@
+{
+  "case_id": "plan-a-v1",
+  "source": "商业策划书企业A正常与天然气压力演示案例",
+  "calibration_note": "仅校准模拟输入与缓释参数；预测和风险结果仍由模型计算。",
+  "features": {
+    "company_name": "恒岳钢铁",
+    "lmdi_efficiency_share": 0.61,
+    "lmdi_energy_share": 0.35,
+    "intensity_trend": 0.14,
+    "project_progress": 0.793720716230271,
+    "milestone_delay_days": 3.0,
+    "fund_usage_match": 0.96,
+    "own_fund_arrival": 0.91,
+    "cashflow_coverage": 1.7593483374982253,
+    "energy_cost_ratio": 0.29796914645872125,
+    "data_completeness": 0.9687938857637598,
+    "shock_sensitivity": 0.40019999999999994,
+    "company_id": "A",
+    "direct_shock_sensitivity": 0.0
+  },
+  "incoming_protection": {
+    "coverage_ratio": 0.8517293845018379,
+    "effectiveness": 1.0,
+    "availability": 1.0,
+    "stress_sensitivity": 0.48992504239438067
+  },
+  "reference_outputs": {
+    "normal_probability": 0.826,
+    "normal_quality": 0.95,
+    "normal_network_risk": 0.16,
+    "gas_probability": 0.74,
+    "gas_network_risk": 0.31
+  },
+  "direct_shock_note": "A的价格冲击已进入达标概率，直接额外冲击敏感度设为0避免重复计入。",
+  "finance_params": {
+    "credit_premium": 0.0,
+    "network_premium_factor": 0.003125,
+    "max_transition_discount": 0.0019113003743788106,
+    "pd_intercept": 0.04036390056256277,
+    "attention_risk_threshold": 0.3
+  },
+  "finance_note": "A专用演示定价输入，正常情景利率3.70%、RAROC9.1%，压力情景继续服从8.5%收益门槛；不覆盖融资输出。"
+}
