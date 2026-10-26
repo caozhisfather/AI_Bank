@@ -1064,3 +1064,28 @@ aside nav button.active { background: linear-gradient(90deg, rgba(214, 190, 121,
   .assessment-conclusion { padding: 16px; align-items: flex-start; }
   .assessment-forecast-heading > strong { font-size: 36px; }
 }
+
+/* Red reminders use attribution state and the existing 70% monitoring threshold. */
+.attribution-metric.attribution-production-warning {
+  background-color: #fff3f5;
+  background-image: url('./assets/metric-attribution-warning.svg');
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+.attribution-metric.attribution-production-warning strong,
+.attribution-metric.attribution-production-warning button { color: #b4263a; }
+.attribution-metric.attribution-production-warning button:focus-visible { outline-color: #c52e43; }
+.attribution-conclusion.attribution-production-warning {
+  color: #92283a;
+  border-color: #edc3ca;
+  border-left-color: #c52e43;
+  background: linear-gradient(110deg, #fff0f2, #fff7f8);
+}
+.attribution-conclusion.attribution-production-warning .attribution-conclusion-icon { background: #c52e43; }
+.probability-workspace.probability-low {
+  border-color: #edbdc6;
+  background: linear-gradient(135deg, #fff4f6, #fffafa);
+}
+.probability-workspace.probability-low h2 { color: #92283a; }
+.probability-workspace.probability-low .assessment-probability { color: #bf263e; }

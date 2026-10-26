@@ -1,7 +1,9 @@
 <script setup>
 import { computed } from 'vue'
+import { isProductionLed } from '../utils/assessmentState'
 
 const props = defineProps({ result: { type: Object, required: true } })
+const productionLed = computed(() => isProductionLed(props.result))
 const signed = value => `${value > 0 ? '+' : ''}${(Math.abs(value) < .005 ? 0 : value).toFixed(2)}%`
 const percentages = computed(() => props.result.effect_percentages || Object.fromEntries(
   ['activity', 'efficiency', 'energy_structure', 'process'].map(key => [key,
@@ -55,6 +57,6 @@ const chartDescription = computed(() => steps.value.map(item => `${item.label}ï¼
       </svg></div>
     </figure>
     </div>
-    <div class="attribution-conclusion"><span class="attribution-conclusion-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M19 4C10 3 5 8 5 14c0 3 2 5 5 6 0-6 3-10 8-13-4 4-6 8-7 13 7-2 10-9 8-16Z" fill="currentColor" /></svg></span><p>{{ result.conclusion }}</p></div>
+    <div class="attribution-conclusion" :class="{'attribution-production-warning':productionLed}"><span class="attribution-conclusion-icon" aria-hidden="true"><svg v-if="productionLed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 6v8m0 4h.01" /></svg><svg v-else viewBox="0 0 24 24"><path d="M19 4C10 3 5 8 5 14c0 3 2 5 5 6 0-6 3-10 8-13-4 4-6 8-7 13 7-2 10-9 8-16Z" fill="currentColor" /></svg></span><p>{{ result.conclusion }}</p></div>
   </div>
 </template>

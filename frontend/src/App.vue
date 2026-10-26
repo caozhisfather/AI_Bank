@@ -13,6 +13,7 @@ import ReviewWorkspace from './components/ReviewWorkspace.vue'
 import EnterpriseData from './components/EnterpriseData.vue'
 import PredictionFactors from './components/PredictionFactors.vue'
 import OperatingProfile from './components/OperatingProfile.vue'
+import { isLowTargetProbability } from './utils/assessmentState'
 
 const portalSection = ref('业务工作台')
 const terminal = ref('银行端')
@@ -44,6 +45,7 @@ const delta = (a, b, suffix = '%') => suffix === '%' ? `${((a - b) * 100).toFixe
 const isOperating = computed(() => company.value.evaluation_model==='operating')
 const tabTitle = tab => isOperating.value&&['转型可信度评价','转型可信度'].includes(tab)?'运行风险画像':tab
 const isAssessment = computed(() => ['转型可信度评价', '转型可信度'].includes(activeTab.value))
+const lowTargetProbability = computed(() => isLowTargetProbability(company.value.p_target))
 
 let loadRevision = 0
 let signingIn = false
@@ -148,7 +150,7 @@ onBeforeUnmount(() => window.removeEventListener('session-expired', clearSession
           <h2>减排归因分析</h2>
           <EmissionAttribution :result="analysis.lmdi" />
         </section>
-        <section v-if="isAssessment&&!isOperating" class="workspace probability-workspace" aria-label="未来12个月的转型达标概率">
+        <section v-if="isAssessment&&!isOperating" class="workspace probability-workspace" :class="{'probability-low':lowTargetProbability}" :title="lowTargetProbability?'达标概率低于70%，需重点关注':''" aria-label="未来12个月的转型达标概率">
           <h2>未来12个月的转型达标概率</h2>
           <p class="assessment-probability" aria-label="达标概率">{{ pct(company.p_target) }}</p>
           <PredictionFactors :explanation="analysis.shap_probability" />
