@@ -15,3 +15,5 @@ _stage/
 .env
 .env.*
 !.env.example
+
+.deploy-access/

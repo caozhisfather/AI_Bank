@@ -53,7 +53,7 @@ FACTORS = {'coal':.34,'gas':.202,'electricity':.55,'green_power':.03}
 
 def build_park(data_dir=DATA_DIR):
     rng=np.random.default_rng(20261025)
-    profile=json.loads((Path(data_dir)/'reference_case_a.json').read_text())
+    profile=json.loads((Path(data_dir)/'reference_case_a.json').read_text(encoding='utf-8'))
     companies=[]; energies=[]; features=[]; operations=[]; service=[]; projects=[]; funds=[]
     periods=[f'2025-{i:02d}' for i in range(1,13)]
     # Match the algorithm document's +2/-9/-5 thousand tonnes through physical inputs.

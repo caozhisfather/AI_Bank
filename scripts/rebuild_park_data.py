@@ -27,7 +27,7 @@ def prepare(destination):
         from scripts.generate_demo_data import generate_training
         data['training']=generate_training(np.random.default_rng(42))
     data['external_risks']=pd.DataFrame([dict(scenario=k,driver=v['driver'],change=v['change']) for k,v in SCENARIOS.items()])
-    profile=calibrate_case(data,json.loads((DATA_DIR/'reference_case_a.json').read_text()))
+    profile=calibrate_case(data,json.loads((DATA_DIR/'reference_case_a.json').read_text(encoding='utf-8')))
     pipeline=CarbonFinancePipeline(data)
     report={'version':VERSION,'subject_count':len(data['companies']),'roles':data['companies'].groupby('business_role').size().to_dict(),'relationship_count':len(data['network']),'case_a':{}}
     for scenario in SCENARIOS:

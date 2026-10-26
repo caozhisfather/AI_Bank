@@ -33,7 +33,7 @@ class CarbonFinancePipeline:
             result = pd.concat([result, other], ignore_index=True)
         return result
 
-    def run(self, scenario_name: str = "正常情景") -> dict:
+    def run(self, scenario_name: str = "正常情景", on_stage=None) -> dict:
         if scenario_name not in SCENARIOS:
             raise ValueError(f"未知情景：{scenario_name}")
         scenario = SCENARIOS[scenario_name]
@@ -49,6 +49,9 @@ class CarbonFinancePipeline:
             evaluations.loc[reviewed, "data_quality"] = evaluations.loc[reviewed, "company_id"].map(completeness).clip(0.55, 1)
             evaluations.loc[reviewed, "effective_anomaly_score"] = 0.0
             evaluations.loc[reviewed, "anomaly_reviewed"] = True
+        if on_stage:
+            on_stage("transition", "completed", evaluations)
+            on_stage("network", "started", None)
         nodes = self.data["companies"][["company_id", "company_name"]].merge(
             evaluations[["company_id", "p_target"]], on="company_id"
         )
@@ -77,6 +80,9 @@ class CarbonFinancePipeline:
             edge_scale=DEMO_PARAMS["network_edge_scale"],
             relation_weights=NETWORK_RELATION_WEIGHTS,
         )
+        if on_stage:
+            on_stage("network", "completed", {"network": network, "paths": paths, "relations": relations})
+            on_stage("finance", "started", None)
 
         companies = self.data["companies"].merge(evaluations, on=["company_id", "company_name"])
         companies = companies.merge(network, on=["company_id", "company_name"])
@@ -103,6 +109,8 @@ class CarbonFinancePipeline:
             }
             decisions.append({"company_id": row.company_id, **decision_fields})
         companies = companies.merge(pd.DataFrame(decisions), on="company_id")
+        if on_stage:
+            on_stage("finance", "completed", companies)
         return {
             "scenario": scenario_name,
             "companies": companies,

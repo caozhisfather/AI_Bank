@@ -1,3 +1,5 @@
+import { readWorkflowStream } from './utils/workflowStream'
+
 let accessToken = ''
 export const setAccessToken = token => { accessToken = token || '' }
 
@@ -26,8 +28,15 @@ export const logoutSession = () => post('/auth/logout', {})
 export const getMetadata = () => get('/metadata')
 export const getDashboard = scenario => get(`/dashboard?scenario=${encodeURIComponent(scenario)}`)
 export const getAnalysis = (id, scenario) => get(`/companies/${encodeURIComponent(id)}/analysis?scenario=${encodeURIComponent(scenario)}`)
+export async function runAnalysisWorkflow(id, scenario, onEvent, signal) {
+  const response = await request(`/companies/${encodeURIComponent(id)}/analysis-workflow`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson' },
+    body: JSON.stringify({ scenario }), signal,
+  })
+  await readWorkflowStream(response.body, onEvent)
+}
+export const getAnalysisWorkflows = id => get(`/companies/${encodeURIComponent(id)}/analysis-workflows`)
 export const getDataStatus = () => get('/enterprise/data-status')
-export const syncEnterpriseData = body => post('/enterprise/data-sync', body)
 export const getReviewTasks = () => get('/review-tasks')
 export const getReviewTask = id => get(`/review-tasks/${encodeURIComponent(id)}`)
 export const submitEvidence = async form => (await request('/enterprise/evidence', { method: 'POST', body: form })).json()

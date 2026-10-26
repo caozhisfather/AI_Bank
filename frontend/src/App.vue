@@ -13,6 +13,7 @@ import ReviewWorkspace from './components/ReviewWorkspace.vue'
 import EnterpriseData from './components/EnterpriseData.vue'
 import PredictionFactors from './components/PredictionFactors.vue'
 import OperatingProfile from './components/OperatingProfile.vue'
+import CalculationWorkflow from './components/CalculationWorkflow.vue'
 import { isLowTargetProbability } from './utils/assessmentState'
 
 const portalSection = ref('业务工作台')
@@ -30,8 +31,8 @@ const credibilitySection = ref(null)
 const today = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
 const portalSections = ['业务工作台', '转型金融', '园区风控', '产品服务', '平台介绍']
 
-const bankTabs = ['转型可信度评价', '园区风险分析', '融资决策', '审核任务清单']
-const companyTabs = ['转型账户', '转型路径', '真实减排', '转型可信度', '融资方案', '数据接入与补充材料']
+const bankTabs = ['转型可信度评价', '园区风险分析', '融资决策', '审核任务清单', '计算工作流']
+const companyTabs = ['转型账户', '转型路径', '真实减排', '转型可信度', '融资方案', '数据状态与补充材料']
 const tabs = computed(() => terminal.value === '银行端' ? bankTabs : companyTabs)
 const company = computed(() => analysis.value?.company || {})
 const normal = computed(() => analysis.value?.comparison.normal || {})
@@ -135,11 +136,11 @@ onBeforeUnmount(() => window.removeEventListener('session-expired', clearSession
       <div class="breadcrumb"><span>首页</span><i>/</i><span>{{ terminal }}</span><i>/</i><b>{{ tabTitle(activeTab) }}</b></div>
       <header class="page-hero"><div><h1>{{ tabTitle(activeTab) }}</h1><p v-if="activeTab!=='审核任务清单'">{{ currentMeta.company_name }} · {{ currentMeta.industry }} · {{ scenario }}</p></div><div class="hero-meta"><span class="online"><i></i>模型服务在线</span><span class="version">模型版本 CTI 1.0</span></div></header>
       </div>
-      <div v-if="error" class="error">{{ error }}。请确认 Python 后端已启动。</div>
+      <div v-if="error" class="error" role="alert">{{ error }}</div>
       <div v-if="loading" class="loading"><i></i>正在调用三引擎计算链...</div>
 
       <template v-else-if="analysis">
-        <section class="metrics">
+        <section v-if="activeTab!=='计算工作流'" class="metrics">
           <CredibilityMetric v-if="!isOperating" :attribution="analysis.lmdi" @show-evidence="showCredibility" />
           <MetricCard v-if="isOperating" label="主要商品或服务" :value="company.product" />
           <MetricCard class="risk-metric" label="园区综合风险" :value="pct(company.network_risk)" :delta="analysis.scenario!=='正常情景'?`${((company.network_risk-normal.network_risk)*100).toFixed(2)}个百分点`:''" danger />
@@ -156,9 +157,10 @@ onBeforeUnmount(() => window.removeEventListener('session-expired', clearSession
           <PredictionFactors :explanation="analysis.shap_probability" />
         </section>
 
-        <section v-if="isOperating&&!['园区风险分析','审核任务清单','数据接入与补充材料'].includes(activeTab)" class="workspace"><OperatingProfile :analysis="analysis" /></section>
+        <section v-if="isOperating&&!['园区风险分析','审核任务清单','数据状态与补充材料'].includes(activeTab)" class="workspace"><OperatingProfile :analysis="analysis" /></section>
         <section v-else-if="!isAssessment" class="workspace">
-          <template v-if="activeTab==='真实减排'">
+          <CalculationWorkflow v-if="activeTab==='计算工作流'" :key="`${companyId}-${scenario}`" :company-id="companyId" :scenario="scenario" :analysis="analysis" @completed="load(true)" />
+          <template v-else-if="activeTab==='真实减排'">
             <h2>减排归因分析</h2>
             <EmissionAttribution :result="analysis.lmdi" />
           </template>
@@ -177,12 +179,12 @@ onBeforeUnmount(() => window.removeEventListener('session-expired', clearSession
             <ReviewWorkspace :user="session" :company-id="companyId" :version-id="analysis.data_version.id" @changed="load(true)" />
           </template>
 
-          <template v-else-if="activeTab==='数据接入与补充材料'">
+          <template v-else-if="activeTab==='数据状态与补充材料'">
             <EnterpriseData :user="session" :company-id="companyId" :version-id="analysis.data_version.id" @changed="load(true)" />
           </template>
 
           <template v-else-if="activeTab==='转型账户'">
-            <h2>企业转型账户</h2><div class="summary-grid"><div><span>当前碳强度</span><b>{{company.carbon_intensity.toFixed(3)}}</b></div><div><span>目标碳强度</span><b>{{company.target_intensity.toFixed(3)}}</b></div><div><span>数据可信度</span><b>{{pct(company.data_quality)}}</b></div><div><span>原始异常分数</span><b>{{pct(company.anomaly_score)}}</b></div></div><p class="footnote">数据 V{{ analysis.data_version.version }} · {{ analysis.data_version.period }} · {{ analysis.data_version.source }}{{company.anomaly_reviewed ? ' · 当前版本组合异常已核验合理' : ''}}</p><button class="review-secondary" @click="activeTab='数据接入与补充材料'">查看接口接入与补充材料</button>
+            <h2>企业转型账户</h2><div class="summary-grid"><div><span>当前碳强度</span><b>{{company.carbon_intensity.toFixed(3)}}</b></div><div><span>目标碳强度</span><b>{{company.target_intensity.toFixed(3)}}</b></div><div><span>数据可信度</span><b>{{pct(company.data_quality)}}</b></div><div><span>原始异常分数</span><b>{{pct(company.anomaly_score)}}</b></div></div><p class="footnote">数据 V{{ analysis.data_version.version }} · {{ analysis.data_version.period }} · {{ analysis.data_version.source }}{{company.anomaly_reviewed ? ' · 当前版本组合异常已核验合理' : ''}}</p><button class="review-secondary" @click="activeTab='数据状态与补充材料'">查看数据状态与补充材料</button>
           </template>
 
           <template v-else-if="activeTab==='转型路径'">
