@@ -6,6 +6,93 @@ import { graphTransitionFrame } from '../frontend/src/utils/graphTransition.js'
 import { businessGrouping, groupedBusinessView, keyRiskView, stressPriorityIds, worseningSubjects } from '../frontend/src/utils/graphPresentation.js'
 import { effectLabel,signedImpact } from '../frontend/src/utils/riskDisplay.js'
 import { MAX_GRAPH_ZOOM, MIN_GRAPH_ZOOM, zoomGraphAt } from '../frontend/src/utils/graphViewport.js'
+import { focusedRiskPaths, focusedRiskPathData } from '../frontend/src/utils/riskPathFocus.js'
+
+function riskPathFixture() {
+  const relations=[
+    {relation_id:'af',source:'A',target:'F',dependency_class:'supply',weight:.22,direct_contribution:.0187,baseline_direct_contribution:.0187},
+    {relation_id:'fb',source:'F',target:'B',dependency_class:'supply',weight:.28,direct_contribution:.025,baseline_direct_contribution:.025},
+    {relation_id:'fc',source:'F',target:'C',dependency_class:'supply',weight:.2,direct_contribution:.01,baseline_direct_contribution:.01},
+    {relation_id:'ea',source:'E',target:'A',dependency_class:'energy',weight:.4,direct_contribution:-.003,baseline_direct_contribution:-.003},
+    {relation_id:'ue',source:'U',target:'E',dependency_class:'infra',weight:.2,direct_contribution:-.006,baseline_direct_contribution:-.006}
+  ]
+  const path=(ids,contribution,relation_ids)=>({path:ids.join(' → '),node_ids:ids,order:ids.length-1,contribution,baseline_contribution:contribution,relation_ids})
+  const explanation={outgoing_paths:[path(['A','F'],.0187,['af']),path(['A','F','B'],.001,['af','fb']),path(['A','F','C'],.0008,['af','fc'])],incoming_paths:[path(['E','A'],-.003,['ea']),path(['U','E','A'],-.0002,['ue','ea'])]}
+  const nodes=['A','F','B','C','E','U'].map(company_id=>({company_id,company_name:company_id,risk:.2,baseline_risk:.2,own_risk:.174,baseline_own_risk:.174,final_limit:3512,baseline_final_limit:3512}))
+  return {relations,explanation,nodes}
+}
+
+test('clicking the second segment focuses the complete two-hop path and retains its actual contribution',()=>{
+  const {relations,explanation,nodes}=riskPathFixture()
+  const choices=focusedRiskPaths(explanation,relations,{order:'2',relationIds:['fb']})
+  assert.equal(choices.length,1)
+  assert.deepEqual(choices[0].node_ids,['A','F','B'])
+  const data=focusedRiskPathData(choices[0],explanation,relations,nodes,'A')
+  assert.deepEqual(data.steps.map(step=>step.node.company_id),['A','F','B'])
+  assert.equal(data.steps[1].prefix.contribution,.0187)
+  assert.equal(data.steps[2].prefix.contribution,.001)
+  assert.notEqual(data.steps[2].prefix.contribution,relations.find(edge=>edge.relation_id==='fb').direct_contribution)
+  assert.equal(data.direction,'outgoing')
+})
+
+test('shared segments expose each complete candidate and honor order and mixed dependency types',()=>{
+  const {relations,explanation}=riskPathFixture()
+  assert.deepEqual(focusedRiskPaths(explanation,relations,{order:'2',relationIds:['af']}).map(path=>path.key),['A>F>B','A>F>C'])
+  assert.deepEqual(focusedRiskPaths(explanation,relations,{order:'1',relationIds:['af']}).map(path=>path.key),['A>F'])
+  const incoming=focusedRiskPaths(explanation,relations,{order:'2',kind:'energy'})
+  assert.equal(incoming.length,1)
+  assert.equal(incoming[0].direction,'incoming')
+  assert.deepEqual(incoming[0].relation_ids,['ue','ea'])
+  assert.equal(focusedRiskPaths(explanation,relations,{kind:'energy',relationIds:['fb']}).length,0)
+})
+
+test('incomplete paths and unavailable enterprise data never create invented connecting segments',()=>{
+  const {relations,explanation,nodes}=riskPathFixture()
+  assert.equal(focusedRiskPaths(explanation,relations.filter(edge=>edge.relation_id!=='af'),{relationIds:['fb']}).length,0)
+  const choice=focusedRiskPaths(explanation,relations,{relationIds:['fb']})[0]
+  assert.equal(focusedRiskPathData(choice,explanation,relations,nodes.filter(node=>node.company_id!=='F'),'A'),null)
+})
+
+test('incoming intermediate data adds parallel direct channels while preserving the full backend path',()=>{
+  const {relations,explanation,nodes}=riskPathFixture()
+  relations.push({...relations.find(edge=>edge.relation_id==='ue'),relation_id:'ue2',dependency_class:'energy',direct_contribution:.002,baseline_direct_contribution:.001})
+  explanation.incoming_paths[1].relation_ids.push('ue2')
+  const snapshot=JSON.stringify({relations,explanation,nodes})
+  const choice=focusedRiskPaths(explanation,relations,{order:'2',kind:'energy',relationIds:['ue2']})[0]
+  const data=focusedRiskPathData(choice,explanation,relations,nodes,'A')
+  assert.equal(data.steps[1].relations.length,2)
+  assert.ok(Math.abs(data.steps[1].prefix.contribution-(-.004))<1e-12)
+  assert.ok(Math.abs(data.steps[1].prefix.baseline_contribution-(-.005))<1e-12)
+  assert.equal(data.steps[2].prefix.contribution,-.0002)
+  assert.equal(JSON.stringify({relations,explanation,nodes}),snapshot)
+})
+
+test('scenario updates retain the selected path identity and use fresh enterprise and path comparisons',()=>{
+  const {relations,explanation,nodes}=riskPathFixture()
+  const original=focusedRiskPaths(explanation,relations,{relationIds:['fb']})[0]
+  const stressed=structuredClone(explanation)
+  stressed.outgoing_paths.find(path=>path.node_ids.at(-1)==='B').contribution=.0015
+  const currentNodes=nodes.map(node=>node.company_id==='A'?{...node,risk:.31,final_limit:3341}:node)
+  const current=focusedRiskPaths(stressed,relations,{relationIds:['fb']}).find(path=>path.key===original.key)
+  const data=focusedRiskPathData(current,stressed,relations,currentNodes,'A')
+  assert.equal(current.key,original.key)
+  assert.equal(data.baseline_contribution,.001)
+  assert.equal(data.contribution,.0015)
+  assert.equal(data.steps[0].node.baseline_risk,.2)
+  assert.equal(data.steps[0].node.risk,.31)
+  assert.equal(data.steps[0].node.baseline_final_limit,3512)
+  assert.equal(data.steps[0].node.final_limit,3341)
+})
+
+test('a two-hop feedback path retains all three stages even when the origin returns at the end',()=>{
+  const {relations,explanation,nodes}=riskPathFixture()
+  relations.push({relation_id:'fa',source:'F',target:'A',dependency_class:'supply',direct_contribution:.01,baseline_direct_contribution:.01})
+  explanation.outgoing_paths.push({node_ids:['A','F','A'],order:2,contribution:.001,baseline_contribution:.001,relation_ids:['af','fa']})
+  const choice=focusedRiskPaths(explanation,relations,{order:'2',relationIds:['fa']})[0]
+  const data=focusedRiskPathData(choice,explanation,relations,nodes,'A')
+  assert.deepEqual(data.steps.map(step=>step.node.company_id),['A','F','A'])
+  assert.deepEqual(data.steps.map(step=>step.index),[0,1,2])
+})
 
 test('zoom keeps the graph point under the mouse fixed after panning', () => {
   const viewport = { scale: 1.4, x: 130, y: -27 }
